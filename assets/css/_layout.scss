@@ -1,0 +1,22 @@
+@use './variables' as *;
+@use './mixins' as *;
+
+.l-header-page {
+  background: #ea7329;
+  color: #fff;
+  padding: .5rem 0;
+  text-align: center;
+  line-height: .75;
+  letter-spacing: 0.1em;
+
+  span {
+    display: block;
+    font-size: .75rem;
+    margin-top: 1rem;
+  }
+
+  @include responsive($breakpoint-md) {
+    font-size: 1rem;
+    padding: 1.5rem 0;
+  }
+}

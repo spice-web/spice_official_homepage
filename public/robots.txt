@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# サンクスページは検索エンジンからブロック
+Disallow: /contact/thanks
+
+# サイトマップの場所
+Sitemap: https://spice-web.jp/sitemap.xml

@@ -1,0 +1,86 @@
+# ========================================
+# Cloudflare Turnstile 環境変数
+# ========================================
+SetEnv TURNSTILE_SITE_KEY "0x4AAAAAAB7-ijOa1VUaLrw0"
+SetEnv TURNSTILE_SECRET_KEY "0x4AAAAAAB7-ioGVAAJlNweQS_P_fiLzd60"
+
+# ========================================
+# セキュリティヘッダー
+# ========================================
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ========================================
+# .env ファイルへのアクセス禁止
+# ========================================
+<Files ".env">
+  Order allow,deny
+  Deny from all
+</Files>
+
+# ========================================
+# エラーページ
+# ========================================
+ErrorDocument 404 /404.html
+
+# ========================================
+# コンテンツ圧縮の設定
+# ========================================
+<IfModule mod_rewrite.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/js application/x-javascript application/javascript
+</IfModule>
+
+# ========================================
+# プロクシキャッシュの設定（画像とフォントをキャッシュ）
+# ========================================
+<IfModule mod_headers.c>
+  <FilesMatch "\.(ico|jpe?g|png|gif|svg|swf|pdf|ttf|woff|otf|eot)$">
+    Header set Cache-Control "max-age=604800, public"
+  </FilesMatch>
+</IfModule>
+
+# ========================================
+# 画像ファイルの.webp配信設定
+# ========================================
+<IfModule mime_module>
+  AddType image/webp .webp
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_ACCEPT} image/webp
+  RewriteCond %{REQUEST_FILENAME} (.*)\.(jpe?g|png)$
+  RewriteCond %{REQUEST_FILENAME}\.webp -f
+  RewriteRule (.+)\.(jpe?g|png)$ %{REQUEST_FILENAME}.webp [T=image/webp,E=accept:1]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header append Vary Accept env=REDIRECT_accept
+</IfModule>
+
+# ========================================
+# キャッシュ有効期限設定
+# ========================================
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/html "access plus 1 days"
+ExpiresByType text/css "access plus 1 month"
+ExpiresByType text/javascript "access plus 1 month"
+ExpiresByType application/x-javascript "access plus 1 month"
+ExpiresByType application/javascript "access plus 1 month"
+ExpiresByType image/gif "access plus 1 month"
+ExpiresByType image/jpeg "access plus 1 month"
+ExpiresByType image/png "access plus 1 month"
+ExpiresByType image/webp "access plus 1 month"
+ExpiresByType image/svg+xml "access plus 1 month"
+ExpiresByType image/x-icon "access plus 1 month"
+ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+ExpiresByType font/eot "access plus 1 year"
+ExpiresByType font/ttf "access plus 1 year"
+ExpiresByType font/woff "access plus 1 year"
+ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
