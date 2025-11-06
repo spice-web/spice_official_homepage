@@ -21,7 +21,12 @@
         <nav class="nav" :class="{ 'is-open': isMenuOpen }">
           <ul class="nav-list">
             <li v-for="item in navItems" :key="item.path" class="nav-item">
-              <NuxtLink :to="item.path" class="nav-link" @click="closeMenu">
+              <NuxtLink
+                :to="item.path"
+                class="nav-link"
+                :class="{ 'is-active': isActive(item.path) }"
+                @click="closeMenu"
+              >
                 {{ item.label }}
               </NuxtLink>
             </li>
@@ -33,16 +38,25 @@
 </template>
 
 <script setup lang="ts">
+const route = useRoute()
 const isMenuOpen = ref(false)
 
 const navItems = [
   { path: '/', label: 'トップ' },
   { path: '/business', label: '事業内容' },
-  { path: '/products', label: '商品開発&販売' },
+  { path: '/products', label: '開発&販売' },
   { path: '/news', label: '新着情報' },
   { path: '/about', label: '会社概要' },
   { path: '/contact', label: 'お問い合わせ' }
 ]
+
+// 現在のページがアクティブかどうかを判定
+const isActive = (path: string) => {
+  if (path === '/') {
+    return route.path === '/'
+  }
+  return route.path.startsWith(path)
+}
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -84,13 +98,14 @@ watch(isMenuOpen, (newValue) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
+  padding: 0.5rem 0 0;
 }
 
 .header-logo {
   display: flex;
   align-items: center;
   gap: .5rem;
+  padding-bottom: 0.5rem;
   h1 {
     font-size: .75rem;
     // font-weight: normal;
@@ -198,7 +213,7 @@ watch(isMenuOpen, (newValue) => {
   font-size: 1.125rem;
   padding: 0.5rem;
   color: $color-text;
-  @include hover-opacity;
+  // @include hover-opacity;
   position: relative;
 
   .is-open & {
@@ -275,16 +290,43 @@ watch(isMenuOpen, (newValue) => {
 
   .nav-item {
     padding: 0 1rem;
-    border-left: 1px solid var(--color-primary);
+    // border-left: 1px solid var(--color-primary);
     margin-bottom: 0;
     font-weight: bold;
+    letter-spacing: 0;
+    width: 110px;
   }
 
   .nav-link {
-    font-size: .875rem;
-    padding: 0;
+    font-size: .75rem;
+    padding: 0 0 0.5rem 0;
+    position: relative;
+
+    // アンダーライン（中央から伸びる）
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 3px;
+      background-color: #fa781e;
+      transition: width 0.3s ease;
+    }
+
+    // ホバー時
+    &:hover::before {
+      width: 100%;
+    }
+
     &::after {
       margin: 0;
+    }
+
+    // アクティブな状態（最初から表示）
+    &.is-active::before {
+      width: 100%;
     }
   }
 }

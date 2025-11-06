@@ -175,7 +175,7 @@ useHead({
 
 @include responsive($breakpoint-md) {
   .thanks-section {
-    padding: 4rem 2rem;
+    padding: 4rem 0;
   }
 
   .thanks-title {
