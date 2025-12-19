@@ -162,8 +162,6 @@
             <div
               id="turnstile-widget"
               class="cf-turnstile"
-              :data-sitekey="config.public.turnstileSiteKey"
-              data-callback="onTurnstileSuccess"
             ></div>
             <p v-if="turnstileToken" class="turnstile-debug">✓ セキュリティ認証完了</p>
           </div>
@@ -192,6 +190,13 @@ useHead({
   title: 'お問い合わせ | 広島のweb・DTP制作会社 株式会社スパイス',
   meta: [
     { name: 'description', content: '株式会社スパイスのお問い合わせページです。お気軽にご相談ください。' }
+  ],
+  script: [
+    {
+      src: 'https://challenges.cloudflare.com/turnstile/v0/api.js',
+      async: true,
+      defer: true
+    }
   ]
 })
 
@@ -293,6 +298,37 @@ if (process.client) {
     console.log('Token set:', token.substring(0, 20) + '...')
   }
 }
+
+// Turnstileウィジェットの初期化
+onMounted(() => {
+  // Turnstileスクリプトが読み込まれるまで待機
+  const initTurnstile = () => {
+    if ((window as any).turnstile) {
+      console.log('Initializing Turnstile widget...')
+      const widgetElement = document.getElementById('turnstile-widget')
+      if (widgetElement && config.public.turnstileSiteKey) {
+        try {
+          (window as any).turnstile.render('#turnstile-widget', {
+            sitekey: config.public.turnstileSiteKey,
+            callback: (token: string) => {
+              turnstileToken.value = token
+              console.log('Turnstile token received')
+            }
+          })
+          console.log('Turnstile widget initialized successfully')
+        } catch (error) {
+          console.error('Failed to initialize Turnstile:', error)
+        }
+      }
+    } else {
+      // スクリプトがまだ読み込まれていない場合は、少し待ってから再試行
+      setTimeout(initTurnstile, 100)
+    }
+  }
+
+  // 初期化を実行
+  initTurnstile()
+})
 
 // Turnstileトークンを手動で取得する関数
 const getTurnstileToken = () => {
