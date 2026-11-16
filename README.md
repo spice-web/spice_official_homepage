@@ -238,7 +238,7 @@ const { data } = await useFetch('/api/microcms/information', {
 const { data } = await useFetch(`/api/microcms/site-production/${id}`)
 ```
 
-※ microCMSで記事を追加・更新した場合は、`yarn generate` して再デプロイすると反映されます。
+※ microCMSで記事を公開・更新すると、Webhook経由で GitHub Actions が自動で再ビルド・デプロイします（[DEPLOY.md](DEPLOY.md)）。
 
 ## コンポーネント構成
 
@@ -285,7 +285,8 @@ http://localhost:3000/this-page-does-not-exist
 
 ## デプロイ
 
-さくらレンタルサーバーへのデプロイ手順は別途ドキュメントを参照してください。
+`main` へのマージ、または microCMS でのコンテンツ公開をきっかけに、GitHub Actions がさくらレンタルサーバーへ自動デプロイします。
+仕組みと初期設定は [DEPLOY.md](DEPLOY.md) を参照してください。
 
 ## ライセンス
 

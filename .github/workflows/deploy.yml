@@ -1,0 +1,145 @@
+# さくらレンタルサーバーへの自動デプロイ
+# 手順・初期設定は DEPLOY.md を参照
+name: Deploy
+
+on:
+  # main へのマージ（push）
+  push:
+    branches: [main]
+  # microCMS の Webhook（コンテンツの公開・更新・削除）
+  repository_dispatch:
+    types: [microcms-update]
+  # GitHub の画面から手動実行
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'お試し実行（サーバーを変更せず、変更予定のファイル一覧だけ表示）'
+        type: boolean
+        default: true
+
+# デプロイが同時に走らないようにする（後から来たものは待機）
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # お試し実行にする条件：
+      #   - リポジトリ変数 DEPLOY_ENABLED が 'true' でない（初期設定が終わるまでの安全装置）
+      #   - 手動実行で dry_run にチェックがある
+      DRY_RUN: ${{ (vars.DEPLOY_ENABLED != 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run)) && 'true' || 'false' }}
+      # 不要ファイルの削除を行うフォルダ（このサイト専用のものだけ。images/ などは入れない）
+      MANAGED_DIRS: >-
+        _nuxt _fonts __sitemap__ about business contact hearing-page
+        news privacy products sitemap tokushoho
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Generate static site
+        run: yarn generate
+        env:
+          NODE_ENV: production
+          MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
+          MICROCMS_SERVICE_DOMAIN: ${{ secrets.MICROCMS_SERVICE_DOMAIN }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          GTM_ID: ${{ secrets.GTM_ID }}
+
+      - name: Check build output
+        env:
+          MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -f .output/public/index.html || { echo '::error::index.html が生成されていません'; exit 1; }
+          # microCMS の記事が取得できているか（新着情報の詳細ページが1件以上あるか）
+          ls -d .output/public/news/*/ > /dev/null 2>&1 || { echo '::error::microCMS の記事が取得できていません'; exit 1; }
+          # APIキーがビルド結果に漏れていないか
+          if grep -rqF "$MICROCMS_API_KEY" .output/public; then
+            echo '::error::ビルド結果に microCMS の APIキーが含まれています'; exit 1
+          fi
+
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy to Sakura
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes"
+          REMOTE="$SSH_USER@$SSH_HOST"
+
+          # 公開フォルダの絶対パスを取得（~ を展開）。ホーム直下やルートなら中止
+          DEST=$($SSH "$REMOTE" "cd $DEPLOY_PATH && pwd -P")
+          HOME_DIR=$($SSH "$REMOTE" 'cd ~ && pwd -P')
+          if [ -z "$DEST" ] || [ "$DEST" = "/" ] || [ "$DEST" = "$HOME_DIR" ]; then
+            echo '::error::DEPLOY_PATH が不正です'; exit 1
+          fi
+          echo "::add-mask::$DEST"
+          echo "::add-mask::$HOME_DIR"
+
+          # 上書き・削除されるファイルの退避先
+          BACKUP="$HOME_DIR/deploy-backup/$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+
+          RSYNC_OPTS=(-rlz --itemize-changes --chmod=D755,F644 -e "$SSH")
+          if [ "$DRY_RUN" = "true" ]; then
+            RSYNC_OPTS+=(--dry-run)
+            echo '=== お試し実行：サーバーは変更しません ==='
+          fi
+
+          # ① 全体を上書きアップロード（削除なし）。サーバー管理の設定ファイルは送らない
+          echo '=== ① 上書きアップロード ==='
+          rsync "${RSYNC_OPTS[@]}" \
+            --backup --backup-dir="$BACKUP" \
+            --exclude='/mail-config.php' \
+            --exclude='/mail-config.example.php' \
+            .output/public/ "$REMOTE:$DEST/"
+
+          # ② サイト専用フォルダの中だけ、ビルド結果にないファイルを削除
+          echo '=== ② サイト専用フォルダの不要ファイル削除 ==='
+          for d in $MANAGED_DIRS; do
+            if [ -d ".output/public/$d" ]; then
+              echo "--- $d/"
+              rsync "${RSYNC_OPTS[@]}" --delete \
+                --backup --backup-dir="$BACKUP/$d" \
+                ".output/public/$d/" "$REMOTE:$DEST/$d/"
+            fi
+          done
+
+          # 30日より古いバックアップを削除
+          if [ "$DRY_RUN" != "true" ]; then
+            $SSH "$REMOTE" "find '$HOME_DIR/deploy-backup' -mindepth 1 -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +" || true
+          fi
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
