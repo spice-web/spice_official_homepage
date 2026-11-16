@@ -30,9 +30,10 @@
 
 <script setup lang="ts">
 // microCMSからサイト制作一覧を取得
-const { data: siteProductionData } = await useAsyncData('site-production', async () => {
-  return await useSiteProduction()
-})
+const { data: siteProductionData } = await useFetch(
+  '/api/microcms/site-production',
+  { query: { limit: 100 } }
+)
 </script>
 
 <style scoped lang="scss">

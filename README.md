@@ -71,8 +71,6 @@ yarn generate
 │   └── images/         # 画像ファイル
 ├── components/          # Vueコンポーネント
 │   └── business/       # 事業ページ用コンポーネント（FLOCSS準拠）
-├── composables/         # コンポーザブル関数
-│   └── useMicroCMS.ts  # microCMS API関連
 ├── layouts/             # レイアウトコンポーネント
 ├── middleware/          # ミドルウェア
 ├── pages/               # ページコンポーネント（自動ルーティング）
@@ -81,7 +79,7 @@ yarn generate
 │   └── news/           # ニュースページ
 ├── plugins/             # プラグイン
 ├── public/              # 公開ファイル（favicon等）
-├── server/              # サーバーサイドAPI
+├── server/              # サーバーサイドAPI（microCMS取得: api/microcms, utils/microcms.ts）
 ├── types/               # TypeScript型定義
 ├── utils/               # ユーティリティ関数
 └── error.vue            # エラーページ（404, 500など）
@@ -222,24 +220,25 @@ Vue コンポーネント内で SCSS を使用する場合:
 
 ### 使用方法
 
-`composables/useMicroCMS.ts` にて各エンドポイント用の関数を定義しています。
+microCMSへのアクセスはサーバー側（`server/api/microcms/`）でのみ行います。
+APIキーは private な runtimeConfig にのみ置き、ブラウザには渡しません。
+`yarn generate` 時にデータを取得してページに埋め込むため、公開サイトから microCMS へ直接アクセスすることはありません。
+
+- 一覧: `GET /api/microcms/:endpoint`（クエリ: `orders`, `limit`, `offset`, `fields`, `filters`, `q`, `ids`, `depth`）
+- 詳細: `GET /api/microcms/:endpoint/:id`
+- 許可エンドポイント: `information`, `site-production`, `products`（`server/utils/microcms.ts` で定義）
 
 ```typescript
 // ニュース一覧を取得
-const { data } = await useAsyncData('information', async () => {
-  return await useInformation()
+const { data } = await useFetch('/api/microcms/information', {
+  query: { orders: '-publishedAt', limit: 5 }
 })
 
-// サイト制作実績を取得
-const { data } = await useAsyncData('site-production', async () => {
-  return await useSiteProduction()
-})
-
-// 商品情報を取得
-const { data } = await useAsyncData('products', async () => {
-  return await useProducts()
-})
+// 詳細を取得
+const { data } = await useFetch(`/api/microcms/site-production/${id}`)
 ```
+
+※ microCMSで記事を追加・更新した場合は、`yarn generate` して再デプロイすると反映されます。
 
 ## コンポーネント構成
 

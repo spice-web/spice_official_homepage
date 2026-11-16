@@ -19,9 +19,13 @@ logs
 .idea
 
 # Local env files
+.vscode
 .env
 .env.*
 !.env.example
+
+# PHPメール送信用シークレット（public/mail-config.example.php を参照）
+public/mail-config.php
 
 # Large files (optional)
 # public/images/**/*.jpg

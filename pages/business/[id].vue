@@ -43,26 +43,9 @@ const route = useRoute()
 const id = route.params.id as string
 
 // microCMSから記事詳細を取得
-const { data: article } = await useAsyncData(`site-production-${id}`, async () => {
-  const config = useRuntimeConfig()
-  const { createClient } = await import('microcms-js-sdk')
-
-  const client = createClient({
-    serviceDomain: config.public.microCmsServiceDomain as string,
-    apiKey: config.public.microCmsApiKey as string,
-  })
-
-  try {
-    const response = await client.get({
-      endpoint: 'site-production',
-      contentId: id,
-    })
-    return response
-  } catch (error) {
-    console.error('microCMS fetch error:', error)
-    return null
-  }
-})
+const { data: article } = await useFetch<any>(
+  `/api/microcms/site-production/${id}`
+)
 
 // 日付フォーマット
 const formatDate = (dateString: string) => {

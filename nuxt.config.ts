@@ -50,24 +50,26 @@ export default defineNuxtConfig({
     name: 'SPICE'
   },
 
+  // サイトマップ: プリレンダリングしたページを自動で登録（microCMSの詳細ページも含む）
   sitemap: {
-    sources: [
-      '/api/__sitemap__/urls'
+    // noindex のページは除外
+    exclude: [
+      '/hearing-page',
+      '/contact/thanks',
+      '/test-error'
     ]
   },
 
   // ランタイム設定
   runtimeConfig: {
-    // サーバーサイドのみ
+    // サーバーサイドのみ（microCMSは server/api/microcms 経由で取得。キーをクライアントに出さない）
     microCmsApiKey: process.env.MICROCMS_API_KEY,
     microCmsServiceDomain: process.env.MICROCMS_SERVICE_DOMAIN,
 
-    // クライアントサイドでも利用可能
+    // クライアントサイドでも利用可能（公開してよい値のみ）
     public: {
       gtmId: process.env.GTM_ID || 'GTM-56C5JFV',
-      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY,
-      microCmsApiKey: process.env.MICROCMS_API_KEY,
-      microCmsServiceDomain: process.env.MICROCMS_SERVICE_DOMAIN?.replace('https://', '').replace('http://', '').replace('.microcms.io', '')
+      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY
     }
   },
 

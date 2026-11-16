@@ -77,7 +77,7 @@
       <div class="p-shop-card">
         <div class="p-shop-card__inner">
           <div class="p-shop-card__image">
-            <img src="@/assets/images/services/eyes.jpg" alt="コンタクト" width="100%">
+            <img src="@/assets/images/services/eyes.png" alt="コンタクト" width="100%">
           </div>
           <p class="p-shop-card__logo">
             <img src="@/assets/images/services/eyes_logo.svg" alt="アイズコンタクトロゴ" width="100%">

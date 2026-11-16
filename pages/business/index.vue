@@ -24,8 +24,6 @@
       <!-- LINE公式アカウント -->
       <BusinessLineSection />
 
-
-
       <!-- DTP・各種印刷物デザイン -->
       <section class="content-section">
         <h2 class="c-headline__lv2">DTP・各種印刷物デザイン</h2>
