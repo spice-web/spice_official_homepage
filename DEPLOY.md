@@ -42,9 +42,19 @@
 
 ## 初期設定
 
-上から順番に進めてください。コマンドはすべて Windows の PowerShell で実行します。
+上から順番に進めてください。
 
-### 1. さくらのSSH接続情報を調べる
+| 手順 | 作業場所 |
+|---|---|
+| 1 | ブラウザ（さくらのコントロールパネル） |
+| 2〜5 | **ローカルPCの Git Bash** |
+| 6〜8 | ブラウザ（GitHub） |
+| 9 | ブラウザ（GitHub・microCMS） |
+
+- さくらのサーバーにログインしてコマンドを打つ作業はありません。手順3・4のコマンドは、ローカルPCからSSHでさくらに接続し、必要な処理をさくら側で実行させるものです。
+- PowerShell ではパスの書き方などが違うので、必ず Git Bash で実行してください。
+
+### 1. さくらのSSH接続情報を調べる（ブラウザ）
 
 さくらのコントロールパネルで、次の値を確認します。
 
@@ -52,35 +62,41 @@
 |---|---|---|
 | ホスト名 | `アカウント名.sakura.ne.jp` | コントロールパネルの「サーバー情報」、または契約時のメール「仮登録完了のお知らせ」 |
 | ユーザー名 | `アカウント名` | 同上 |
-| パスワード | サーバーパスワード | 同上（最初の接続でだけ使います） |
+| パスワード | サーバーパスワード（SFTP・SSH・サーバーコントロールパネル共通。会員メニューのパスワードとは別） | 同上。契約後に変更している場合は、今SFTPで使っているもの（手順3でだけ使います） |
+
+スタンダードプラン以上なら、SSHは申し込みや有効化の設定なしで使えます（初期アカウントのみ）。
 | 公開フォルダ | `~/www` | — |
 
-### 2. デプロイ専用のSSH鍵を作る
+### 2. デプロイ専用のSSH鍵を作る（ローカルPC・Git Bash）
 
-```powershell
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f $HOME\.ssh\spice_deploy
+```bash
+mkdir -p ~/.ssh
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/spice_deploy
 ```
 
 - パスフレーズを聞かれたら、**何も入力せずに Enter を2回**押します。GitHub Actions が自動で使う鍵なので、パスフレーズは付けません。
-- 次の2つのファイルができます。
-  - `$HOME\.ssh\spice_deploy`：秘密鍵。GitHub に登録します。**ほかの人には渡さないでください。**
-  - `$HOME\.ssh\spice_deploy.pub`：公開鍵。さくらに登録します。
+- 次の2つのファイルができます（`~` は `C:\Users\ユーザー名`）。
+  - `~/.ssh/spice_deploy`：秘密鍵。GitHub に登録します。**ほかの人には渡さないでください。**
+  - `~/.ssh/spice_deploy.pub`：公開鍵。さくらに登録します。
 
-### 3. 公開鍵をさくらに登録する
+### 3. 公開鍵をさくらに登録する（ローカルPC・Git Bash）
 
-`アカウント名` は、手順1で調べた値に置き換えてください（以下同じ）。
+ローカルPCからさくらにSSH接続して、公開鍵を登録します。`アカウント名` は、手順1で調べた値に置き換えてください（以下同じ）。
 
-```powershell
-Get-Content $HOME\.ssh\spice_deploy.pub | ssh アカウント名@アカウント名.sakura.ne.jp "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```bash
+cat ~/.ssh/spice_deploy.pub | ssh アカウント名@アカウント名.sakura.ne.jp "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
 - 初めて接続すると `Are you sure you want to continue connecting (yes/no)?` と聞かれます。`yes` と入力してください。
-- パスワードを聞かれたら、サーバーパスワードを入力します。
+- パスワードを聞かれたら、サーバーパスワードを入力します。**成功すると何も表示されずに終わります。**
+- `** WARNING: connection is not using a post-quantum key exchange algorithm.` という3行は、さくら側の暗号方式についてのお知らせです。無視して大丈夫です。
+- `>>` で追記するので、すでに登録されているほかの鍵は消えません。ただし、**このコマンドは1回だけ**実行してください。実行するたびに同じ鍵が1行ずつ増えます。
+- コマンドの代わりに、さくらのサーバーコントロールパネル → 「サーバー情報」→「SSH公開鍵」→「新規追加」→「作成済みの公開鍵を登録」から、`cat ~/.ssh/spice_deploy.pub` の中身を貼り付けて登録することもできます。
 
-### 4. 鍵で接続できるか確認する
+### 4. 鍵で接続できるか確認する（ローカルPC・Git Bash）
 
-```powershell
-ssh -i $HOME\.ssh\spice_deploy アカウント名@アカウント名.sakura.ne.jp "cd ~/www && pwd && which rsync"
+```bash
+ssh -i ~/.ssh/spice_deploy アカウント名@アカウント名.sakura.ne.jp "cd ~/www && pwd && which rsync"
 ```
 
 次のように、**パスワードを聞かれずに**2行表示されれば成功です。
@@ -93,18 +109,18 @@ ssh -i $HOME\.ssh\spice_deploy アカウント名@アカウント名.sakura.ne.j
 - パスワードを聞かれる場合は、手順3がうまくいっていません。
 - `rsync` が表示されない場合は、サーバーで rsync が使えません。この場合は自動デプロイができないので、相談してください。
 
-### 5. サーバーの「本人確認情報」を取得する
+### 5. サーバーの「本人確認情報」を取得する（ローカルPC・Git Bash）
 
 GitHub Actions が、偽のサーバーにつながらないようにするための情報です。
 
-```powershell
-ssh-keyscan アカウント名.sakura.ne.jp 2>$null | Set-Content $HOME\.ssh\spice_known_hosts
-Get-Content $HOME\.ssh\spice_known_hosts
+```bash
+ssh-keyscan アカウント名.sakura.ne.jp 2>/dev/null > ~/.ssh/spice_known_hosts
+cat ~/.ssh/spice_known_hosts
 ```
 
 `アカウント名.sakura.ne.jp ssh-ed25519 AAAA...` のような行が表示されます。この内容をすべて、手順6で `SSH_KNOWN_HOSTS` として登録します。
 
-### 6. GitHub に Secrets を登録する
+### 6. GitHub に Secrets を登録する（ブラウザ）
 
 GitHub のリポジトリページ → **Settings** → **Secrets and variables** → **Actions** → **Secrets** タブ → **New repository secret** から、1つずつ登録します。
 
@@ -114,7 +130,7 @@ GitHub のリポジトリページ → **Settings** → **Secrets and variables*
 | `MICROCMS_SERVICE_DOMAIN` | `.env` の `MICROCMS_SERVICE_DOMAIN` と同じ値 |
 | `TURNSTILE_SITE_KEY` | `.env` の `TURNSTILE_SITE_KEY` と同じ値 |
 | `GTM_ID` | `.env` の `GTM_ID` と同じ値（省略可。省略すると `nuxt.config.ts` の既定値を使います） |
-| `SSH_PRIVATE_KEY` | `$HOME\.ssh\spice_deploy`（`.pub` **ではない** ほう）の中身すべて。`-----BEGIN` から `-----END ... KEY-----` までを貼り付けます |
+| `SSH_PRIVATE_KEY` | `~/.ssh/spice_deploy`（`.pub` **ではない** ほう）の中身すべて。Git Bash で `cat ~/.ssh/spice_deploy` を実行して表示し、`-----BEGIN` から `-----END ... KEY-----` までを貼り付けます |
 | `SSH_KNOWN_HOSTS` | 手順5で表示された内容すべて |
 | `SSH_HOST` | `アカウント名.sakura.ne.jp` |
 | `SSH_USER` | `アカウント名` |
@@ -122,15 +138,15 @@ GitHub のリポジトリページ → **Settings** → **Secrets and variables*
 
 `TURNSTILE_SECRET_KEY` は登録しません。ビルドでは使わず、サーバー上の `mail-config.php` で管理しているためです。
 
-GitHub CLI（`gh`）を使う場合は、次のコマンドで登録することもできます（例）。
+GitHub CLI（`gh`）を使う場合は、ブラウザの代わりにローカルPCの Git Bash で登録することもできます（例）。
 
-```powershell
-Get-Content -Raw $HOME\.ssh\spice_deploy | gh secret set SSH_PRIVATE_KEY
-Get-Content -Raw $HOME\.ssh\spice_known_hosts | gh secret set SSH_KNOWN_HOSTS
+```bash
+gh secret set SSH_PRIVATE_KEY < ~/.ssh/spice_deploy
+gh secret set SSH_KNOWN_HOSTS < ~/.ssh/spice_known_hosts
 gh secret set SSH_HOST --body "アカウント名.sakura.ne.jp"
 ```
 
-### 7. お試し実行で確認する
+### 7. お試し実行で確認する（GitHub）
 
 リポジトリ変数 `DEPLOY_ENABLED` を `true` にするまでは、どのきっかけで動いても**お試し実行**になります。お試し実行では、サーバーは一切変更されません。
 
@@ -141,7 +157,7 @@ gh secret set SSH_HOST --body "アカウント名.sakura.ne.jp"
    - `① 上書きアップロード` に `*deleting` の行は出ません（①では削除しないため）。
 4. 接続でエラーになった場合は、下の「トラブルシューティング」を見てください。
 
-### 8. 本番デプロイを有効にする
+### 8. 本番デプロイを有効にする（ブラウザ）
 
 1. **Settings** → **Secrets and variables** → **Actions** → **Variables** タブ → **New repository variable** から登録します。
    - Name: `DEPLOY_ENABLED`
@@ -153,7 +169,7 @@ gh secret set SSH_HOST --body "アカウント名.sakura.ne.jp"
    - `/contact` からテスト送信できる
    - `https://spice-web.jp/mail-config.php` が 403 になる
 
-### 9. microCMS から自動デプロイする（Webhook）
+### 9. microCMS から自動デプロイする（ブラウザ）
 
 #### 9-1. GitHub のトークンを作る
 
@@ -227,7 +243,7 @@ API ごとに設定が必要です。`information`、`site-production`、`produc
 
 - `Permission denied (publickey)`：`SSH_PRIVATE_KEY` の内容が正しくないか、さくらに公開鍵が登録されていません。手順3・4・6を見直してください。
 - `Host key verification failed`：`SSH_KNOWN_HOSTS` が正しくありません。手順5をやり直してください。
-- `Connection timed out`：さくらのコントロールパネル → **セキュリティ** → **国外IPアドレスフィルタ** など、海外からのアクセス制限を確認してください。GitHub Actions は海外のサーバーで動いています。
+- `Connection timed out`：`SSH_HOST` が正しいか確認してください。なお、さくらの「国外IPアドレスフィルタ」は公開鍵認証を制限しないため、海外で動く GitHub Actions からでも接続できます。
 - `DEPLOY_PATH が不正です`：`DEPLOY_PATH` が空、またはホームフォルダそのものを指しています。`~/www` になっているか確認してください。
 
 ### microCMS で更新しても反映されない
