@@ -69,7 +69,6 @@ interface NewsDetail {
 }
 
 const route = useRoute()
-const config = useRuntimeConfig()
 
 const breadcrumbItems = [
   { label: '新着情報', path: '/news' },
@@ -78,12 +77,7 @@ const breadcrumbItems = [
 
 // microCMSからデータ取得
 const { data, pending, error } = await useFetch<NewsDetail>(
-  `https://spice-web.microcms.io/api/v1/information/${route.params.id}`,
-  {
-    headers: {
-      'X-MICROCMS-API-KEY': config.public.microCmsApiKey as string
-    }
-  }
+  `/api/microcms/information/${route.params.id}`
 )
 
 // メタ情報の設定

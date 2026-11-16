@@ -67,9 +67,10 @@ const breadcrumbItems = [
 ]
 
 // microCMSから商品データを取得
-const { data: productsData } = await useAsyncData('products', async () => {
-  return await useProducts()
-})
+const { data: productsData } = await useFetch<ProductsResponse>(
+  '/api/microcms/products',
+  { query: { limit: 100 } }
+)
 
 // 商品ページへ遷移
 const navigateToProduct = (url?: string) => {

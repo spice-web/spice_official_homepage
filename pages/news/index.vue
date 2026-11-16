@@ -91,15 +91,10 @@ useHead({
   ]
 })
 
-const config = useRuntimeConfig()
-
 // microCMSからデータ取得
 const { data, pending, error } = await useFetch<NewsResponse>(
-  'https://spice-web.microcms.io/api/v1/information',
+  '/api/microcms/information',
   {
-    headers: {
-      'X-MICROCMS-API-KEY': config.public.microCmsApiKey as string
-    },
     query: {
       orders: '-publishedAt',
       limit: 50,

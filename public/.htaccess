@@ -26,6 +26,14 @@
 </Files>
 
 # ========================================
+# 旧URLからのリダイレクト（microCMSのコンテンツID変更に伴う）
+# ========================================
+<IfModule mod_alias.c>
+  RedirectMatch 301 ^/business/test/?$ /business/aireha/
+  RedirectMatch 301 ^/business/information/?$ /business/yutaka/
+</IfModule>
+
+# ========================================
 # エラーページ
 # ========================================
 ErrorDocument 404 /404.html
