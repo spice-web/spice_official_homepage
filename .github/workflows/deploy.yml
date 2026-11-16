@@ -110,7 +110,9 @@ jobs:
           # 上書き・削除されるファイルの退避先
           BACKUP="$HOME_DIR/deploy-backup/$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
 
-          RSYNC_OPTS=(-rlz --itemize-changes --chmod=D755,F644 -e "$SSH")
+          # --checksum: 中身が変わったファイルだけを転送・バックアップする
+          # （ビルドのたびに更新日時が変わるため、日時では比較しない）
+          RSYNC_OPTS=(-rlz --checksum --itemize-changes --chmod=D755,F644 -e "$SSH")
           if [ "$DRY_RUN" = "true" ]; then
             RSYNC_OPTS+=(--dry-run)
             echo '=== お試し実行：サーバーは変更しません ==='
