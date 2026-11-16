@@ -1,7 +1,10 @@
 <?php
-// Turnstileシークレットキー設定
-if (!getenv('TURNSTILE_SECRET_KEY')) {
-  putenv('TURNSTILE_SECRET_KEY=0x4AAAAAAB7-ioGVAAJlNweQS_P_fiLzd60');
+// シークレット設定の読み込み（git管理外の mail-config.php）
+if (file_exists(__DIR__ . '/mail-config.php')) {
+  $mailConfig = require __DIR__ . '/mail-config.php';
+  if (is_array($mailConfig) && !empty($mailConfig['TURNSTILE_SECRET_KEY']) && !getenv('TURNSTILE_SECRET_KEY')) {
+    putenv('TURNSTILE_SECRET_KEY=' . $mailConfig['TURNSTILE_SECRET_KEY']);
+  }
 }
 
 // .envファイルから環境変数を読み込む（開発環境用）

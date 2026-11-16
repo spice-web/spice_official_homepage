@@ -25,7 +25,8 @@ yarn generate
 ✓ sitemap/index.html
 ✓ tokushoho/index.html
 ✓ contact-mail.php        # 更新済み
-✓ .htaccess               # 新規（環境変数設定）
+✓ .htaccess
+✓ mail-config.php         # Turnstileシークレット（git管理外。mail-config.example.php をコピーして作成）
 ✓ favicon.ico
 ✓ images/                 # 既存とマージ
 

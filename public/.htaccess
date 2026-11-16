@@ -1,8 +1,11 @@
 # ========================================
-# Cloudflare Turnstile 環境変数
+# 設定ファイルへの直接アクセス禁止
+# （Turnstileシークレットは mail-config.php で管理。gitには含めない）
 # ========================================
-SetEnv TURNSTILE_SITE_KEY "0x4AAAAAAB7-ijOa1VUaLrw0"
-SetEnv TURNSTILE_SECRET_KEY "0x4AAAAAAB7-ioGVAAJlNweQS_P_fiLzd60"
+<FilesMatch "^mail-config(\.example)?\.php$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
 
 # ========================================
 # セキュリティヘッダー
