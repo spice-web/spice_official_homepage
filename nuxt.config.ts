@@ -50,9 +50,13 @@ export default defineNuxtConfig({
     name: 'SPICE'
   },
 
+  // サイトマップ: プリレンダリングしたページを自動で登録（microCMSの詳細ページも含む）
   sitemap: {
-    sources: [
-      '/api/__sitemap__/urls'
+    // noindex のページは除外
+    exclude: [
+      '/hearing-page',
+      '/contact/thanks',
+      '/test-error'
     ]
   },
 
